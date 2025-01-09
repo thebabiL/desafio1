@@ -1,4 +1,4 @@
-package Desafio.db;
+package Desafio1.db;
 
 public class DbException extends RuntimeException
 {

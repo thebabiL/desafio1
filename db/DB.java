@@ -1,4 +1,4 @@
-package Desafio.db;
+package Desafio1.db;
 
 import java.io.FileInputStream;
 import java.io.IOException;

@@ -6,6 +6,7 @@ import java.util.List;
 import Desafio1.entities.Carrinho;
 import Desafio1.entities.Produto;
 import Desafio1.exceptions.AtualizacaoException;
+import Desafio1.exceptions.BuscaException;
 import Desafio1.exceptions.ExclusaoException;
 import Desafio1.exceptions.InsercaoException;
 
@@ -113,24 +114,28 @@ public class CarrinhoDaoJDBC implements CarrinhoDAO
     }
 
     @Override
-    public Carrinho buscarPorId(int id) {
+    public Carrinho buscarPorId(int id) 
+    {
         String sql = "SELECT * FROM Carrinho WHERE id = ?";
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) 
+        {
             stmt.setInt(1, id);
             ResultSet rs = stmt.executeQuery();
             
-            if (rs.next()) {
+            if (rs.next()) 
+            {
                 Carrinho carrinho = new Carrinho();
                 carrinho.setId(rs.getInt("id"));
                 carrinho.setCliente(rs.getString("cliente"));
 
-                // Buscar produtos associados ao carrinho
                 String sqlProdutos = "SELECT * FROM Carrinho_Produto cp JOIN Produto p ON cp.idProduto = p.id WHERE cp.idCarrinho = ?";
-                try (PreparedStatement stmtProdutos = conn.prepareStatement(sqlProdutos)) {
+                try (PreparedStatement stmtProdutos = conn.prepareStatement(sqlProdutos)) 
+                {
                     stmtProdutos.setInt(1, id);
                     ResultSet rsProdutos = stmtProdutos.executeQuery();
                     List<Produto> produtos = new ArrayList<>();
-                    while (rsProdutos.next()) {
+                    while (rsProdutos.next()) 
+                    {
                         Produto produto = new Produto();
                         produto.setId(rsProdutos.getInt("idProduto"));
                         produto.setNome(rsProdutos.getString("nome"));
@@ -145,15 +150,19 @@ public class CarrinhoDaoJDBC implements CarrinhoDAO
                 return carrinho;
             }
             return null;
-        } catch (SQLException e) {
-            throw new ExcecaoConsulta("Erro ao buscar carrinho: " + e.getMessage(), e);
+        } 
+        catch (SQLException e) 
+        {
+            throw new BuscaException("Erro ao buscar carrinho: " + e.getMessage(), e);
         }
     }
 
     @Override
-    public List<Carrinho> buscarTudo() {
+    public List<Carrinho> buscarTudo() 
+    {
         String sql = "SELECT * FROM Carrinho";
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) 
+        {
             ResultSet rs = stmt.executeQuery();
             List<Carrinho> carrinhos = new ArrayList<>();
             while (rs.next()) {
@@ -161,13 +170,14 @@ public class CarrinhoDaoJDBC implements CarrinhoDAO
                 carrinho.setId(rs.getInt("id"));
                 carrinho.setCliente(rs.getString("cliente"));
 
-                // Buscar produtos associados ao carrinho
                 String sqlProdutos = "SELECT * FROM Carrinho_Produto cp JOIN Produto p ON cp.idProduto = p.id WHERE cp.idCarrinho = ?";
-                try (PreparedStatement stmtProdutos = conn.prepareStatement(sqlProdutos)) {
+                try (PreparedStatement stmtProdutos = conn.prepareStatement(sqlProdutos)) 
+                {
                     stmtProdutos.setInt(1, carrinho.getId());
                     ResultSet rsProdutos = stmtProdutos.executeQuery();
                     List<Produto> produtos = new ArrayList<>();
-                    while (rsProdutos.next()) {
+                    while (rsProdutos.next()) 
+                    {
                         Produto produto = new Produto();
                         produto.setId(rsProdutos.getInt("idProduto"));
                         produto.setNome(rsProdutos.getString("nome"));
@@ -182,8 +192,10 @@ public class CarrinhoDaoJDBC implements CarrinhoDAO
                 carrinhos.add(carrinho);
             }
             return carrinhos;
-        } catch (SQLException e) {
-            throw new ExcecaoConsulta("Erro ao buscar todos os carrinhos: " + e.getMessage(), e);
+        } 
+        catch (SQLException e) 
+        {
+            throw new BuscaException("Erro ao buscar todos os carrinhos: " + e.getMessage(), e);
         }
     }
 }

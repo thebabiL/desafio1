@@ -1,61 +1,68 @@
-package Desafio1.db;
+package db;
 
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.Properties;
-
-public class DB
-{
-
-  private static Connection conn = null;
-
-  public static Connection getConnection()
+  
+  public class DB
   {
-    if(conn == null)
-    {
-      try
+      private static final String url = "jdbc:mysql://localhost:3306/desafio1";
+      private static final String usuario = "root";
+      private static final String senha = "Bb050405.";
+      private static Connection conn;
+  
+      public static Connection getConexao()
       {
-        Properties props = loadProperties();
-        String url = props.getProperty("dburl");
-        conn = DriverManager.getConnection(url, props);
+          if (conn == null)
+          {
+              try
+              {
+                  Class.forName("com.mysql.cj.jdbc.Driver");
+                  conn = DriverManager.getConnection(url, usuario, senha);
+              } 
+              catch (ClassNotFoundException e)
+              {
+                  throw new RuntimeException("Driver JDBC não encontrado.", e);
+              } 
+              catch (SQLException e)
+              {
+                  throw new RuntimeException("Erro ao conectar ao banco de dados: " + e.getMessage(), e);
+              }
+          }
+          return conn;
       }
-      catch (SQLException e)
+  
+      public static void fecharConexao()
       {
-        throw new DbException(e.getMessage());
+          if (conn != null)
+          {
+              try
+              {
+                  conn.close();
+                  conn = null;
+              } 
+              catch (SQLException e)
+              {
+                  throw new RuntimeException("Erro ao encerrar a conexão com o banco de dados: " + e.getMessage(), e);
+              }
+          }
       }
-    }
-    return conn;
-  }
-
-  public static void closeConnection()
-  {
-    if (conn != null)
-    {
-      try
+  
+      public static boolean isConexaoAtiva()
       {
-        conn.close();
+          try
+          {
+              return conn != null && !conn.isClosed();
+          } 
+          catch (SQLException e)
+          {
+              throw new RuntimeException("Erro ao verificar o estado da conexão: " + e.getMessage(), e);
+          }
       }
-      catch (SQLException e)
+  
+      public static void reiniciarConexao()
       {
-        throw new DbException(e.getMessage());
+          fecharConexao();
+          getConexao();
       }
-    }
-  }
-
-  private static Properties loadProperties()
-  {
-    try(FileInputStream fs = new FileInputStream("db.properties"))
-    {
-      Properties props = new Properties();
-      props.load(fs);
-      return props;
-    }
-    catch (IOException e)
-    {
-      throw new DbException(e.getMessage());
-    }
-  }
-}
+  }  

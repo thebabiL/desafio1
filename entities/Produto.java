@@ -1,118 +1,76 @@
-package Desafio1.entities;
+package entities;
 
-import java.io.Serializable;
-import java.util.Objects;
+import exceptions.ProdutoException;
 
-public class Produto implements Serializable
+public class Produto 
 {
-    private static final long serialVersionUID = 1L;
     private int id;
-    private String nome;
+    private String produto;
     private String descricao;
     private String categoria;
     private double valor;
     private int quantidade;
 
-    public Produto()
+    public Produto(String produto, String descricao, String categoria, double valor, int quantidade) 
     {
-    }
-
-    public Produto(int id, String nome, String descricao, String categoria, double valor, int quantidade)
-    {
-        this.id = id;
-        this.nome = nome;
+        this.produto = produto;
         this.descricao = descricao;
         this.categoria = categoria;
         this.valor = valor;
         this.quantidade = quantidade;
     }
 
-    public int getId()
+    public Produto(int id, String produto, String descricao, String categoria, double valor, int quantidade) 
+    {
+        this.id = id;
+        this.produto = produto;
+        this.descricao = descricao;
+        this.categoria = categoria;
+        this.valor = valor;
+        this.quantidade = quantidade;
+    }
+
+    public void diminuirQuant(int quant) throws ProdutoException 
+    {
+        if (quant > this.quantidade) 
+        {
+            throw new ProdutoException("Quantidade solicitada excede o estoque disponível para o produto: " + this.produto);
+        }
+        this.quantidade -= quant;
+    }
+
+    public void aumentarQuant(int quant) 
+    {
+        this.quantidade += quant;
+    }
+
+    public int getID() 
     {
         return id;
     }
 
-    public void setId(int id) 
+    public String getProduto() 
     {
-        this.id = id;
+        return produto;
     }
 
-    public String getNome()
-    {
-        return nome;
-    }
-
-    public void setNome(String nome)
-    {
-        this.nome = nome;
-    }
-
-    public String getDescricao()
+    public String getDescricao() 
     {
         return descricao;
     }
 
-    public void setDescricao(String descricao)
-    {
-        this.descricao = descricao;
-    }
-
-    public String getCategoria()
+    public String getCategoria() 
     {
         return categoria;
     }
 
-    public void setCategoria(String categoria)
-    {
-        this.categoria = categoria;
-    }
-
-    public double getValor()
+    public double getValor() 
     {
         return valor;
     }
 
-    public void setValor(double valor)
-    {
-        this.valor = valor;
-    }
-
-    public int getQuantidade()
+    public int getQuant() 
     {
         return quantidade;
     }
-
-    public void setQuantidade(int quantidade)
-    {
-        this.quantidade = quantidade;
-    }
-
-    
-    @Override
-    public boolean equals(Object o) 
-    {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Produto produto = (Produto) o;
-        return id == produto.id;
-    }
-
-    @Override
-    public int hashCode() 
-    {
-        return Objects.hash(id);
-    }
-
-    @Override
-    public String toString() {
-        return "Produto{" +
-                "id=" + id +
-                ", nome='" + nome + '\'' +
-                ", descricao='" + descricao + '\'' +
-                ", categoria='" + categoria + '\'' +
-                ", valor=" + valor +
-                ", quantidade=" + quantidade +
-                '}';
-    }
-
 }

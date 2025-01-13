@@ -1,39 +1,111 @@
-package Desafio1.entities;
+package entities;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
-public class Carrinho  implements Serializable
+import DAO.ProdutoJDBC;
+import exceptions.CarrinhoException;
+import exceptions.ProdutoException;
+
+public class Carrinho 
 {
-    private static final long serialVersionUID = 1L;
     private int id;
     private String cliente;
-    private List<Produto> produtos;
     private double valorTotal;
+    private List<Produto> produtos;
 
-    public Carrinho() 
+    public Carrinho(String cliente) 
     {
-        this.produtos = new ArrayList<>();
-    }
-
-    public Carrinho(int id, String cliente) 
-    {
-        this.id = id;
         this.cliente = cliente;
+        this.valorTotal = 0;
         this.produtos = new ArrayList<>();
-        this.valorTotal = 0.0;
     }
 
-    public int getId() 
+    public void inserirProduto(Produto p, int quant) throws CarrinhoException, ProdutoException
+    {
+        if (quant <= 0) 
+        {
+            throw new CarrinhoException("A quantidade deve ser maior que zero.");
+        }
+
+        if (p.getQuant() < quant) 
+        {
+            throw new ProdutoException("Quantidade solicitada excede o estoque disponível para o produto: " + p.getProduto());
+        }
+
+        for (Produto produto : this.produtos) 
+        {
+            if (produto.getID() == p.getID()) 
+            {
+                produto.diminuirQuant(quant);
+                double subtotal = p.getValor() * quant;
+                this.valorTotal += subtotal;
+                return;
+            }
+        }
+
+        p.diminuirQuant(quant);
+        double subtotal = p.getValor() * quant;
+        this.valorTotal += subtotal;
+        this.produtos.add(p);
+    }
+
+    public void removerProduto(Produto p, int quant) throws CarrinhoException, ProdutoException
+    {
+        if (quant <= 0) 
+        {
+            throw new CarrinhoException("A quantidade deve ser maior que zero.");
+        }
+
+        if (!this.produtos.contains(p)) 
+        {
+            throw new CarrinhoException("Produto não está no carrinho.");
+        }
+
+        if (quant > p.getQuant()) 
+        {
+            throw new CarrinhoException("Quantidade a ser removida é maior que a disponível no carrinho.");
+        }
+
+        p.aumentarQuant(quant);
+        this.valorTotal -= p.getValor() * quant;
+
+        if (p.getQuant() == 0) 
+        {
+            this.produtos.remove(p);
+        }
+    }
+
+    public void encerrarCompra(ProdutoJDBC produtoDao) throws CarrinhoException
+    {
+        if (this.valorTotal == 0) 
+        {
+            throw new CarrinhoException("O carrinho está vazio. Não é possível finalizar a compra.");
+        }
+
+        for (Produto p : this.produtos) 
+        {
+            p.diminuirQuant(p.getQuant());
+            produtoDao.atualizarQuantBanco(p);
+        }
+    }
+
+    public String listarProdutos() 
+    {
+        StringBuilder listagem = new StringBuilder();
+        for (Produto p : this.produtos) 
+        {
+            double valorTotalProduto = p.getValor() * p.getQuant();
+            listagem.append(String.format("ID: %d | Nome: %s | Valor Unitário: R$%.2f | Valor Total: R$%.2f\n",
+                    p.getID(), p.getProduto(), p.getValor(), valorTotalProduto));
+        }
+        listagem.append(String.format("Valor total do carrinho: R$%.2f", this.valorTotal));
+        return listagem.toString();
+    }
+
+    public int getID() 
     {
         return id;
-    }
-
-    public void setId(int id) 
-    {
-        this.id = id;
     }
 
     public String getCliente() 
@@ -41,83 +113,8 @@ public class Carrinho  implements Serializable
         return cliente;
     }
 
-    public void setCliente(String cliente) 
-    {
-        this.cliente = cliente;
-    }
-
-    public List<Produto> getProdutos() 
-    {
-        return produtos;
-    }
-
-    public void setProdutos(List<Produto> produtos) 
-    {
-        this.produtos = produtos;
-        recalcularValorTotal();
-    }
-
     public double getValorTotal() 
     {
         return valorTotal;
-    }
-
-    public void adicionarProduto(Produto produto, int quantidade) 
-    {
-        produto.setQuantidade(quantidade);
-        produtos.add(produto);
-        recalcularValorTotal();
-    }
-
-    public void removerProduto(int idProduto) 
-    {
-        produtos.removeIf(p -> p.getId() == idProduto);
-        recalcularValorTotal();
-    }
-
-    private void recalcularValorTotal() 
-    {
-        valorTotal = produtos.stream()
-                .mapToDouble(p -> p.getValor() * p.getQuantidade())
-                .sum();
-    }
-
-    @Override
-    public boolean equals(Object o) 
-    {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Carrinho carrinho = (Carrinho) o;
-        return id == carrinho.id &&
-                Double.compare(carrinho.valorTotal, valorTotal) == 0 &&
-                Objects.equals(cliente, carrinho.cliente) &&
-                Objects.equals(produtos, carrinho.produtos);
-    }
-
-    @Override
-    public int hashCode() 
-    {
-        return Objects.hash(id, cliente, produtos, valorTotal);
-    }
-
-    @Override
-    public String toString() 
-    {
-        StringBuilder produtosStr = new StringBuilder();
-        for (Produto produto : produtos) 
-        {
-            produtosStr.append(String.format(
-                    "Produto: %s | Quantidade: %d | Valor Unitário: %.2f | Subtotal: %.2f\n",
-                    produto.getNome(), produto.getQuantidade(), produto.getValor(),
-                    produto.getValor() * produto.getQuantidade()
-            ));
-        }
-
-        return "Carrinho{" +
-                "id=" + id +
-                ", cliente='" + cliente + '\'' +
-                ", produtos=\n" + produtosStr +
-                ", valorTotal=" + String.format("%.2f", valorTotal) +
-                '}';
     }
 }

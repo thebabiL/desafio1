@@ -1,275 +1,268 @@
-package Desafio1.application;
+package application;
 
 import java.sql.Connection;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Scanner;
+import DAO.ProdutoJDBC;
+import DAO.CarrinhoJDBC;
+import db.DB;
+import entities.Carrinho;
+import entities.Produto;
+import exceptions.CarrinhoException;
+import exceptions.ProdutoException;
 
-import Desafio1.DAO.CarrinhoDAO;
-import Desafio1.DAO.FabricaDao;
-import Desafio1.DAO.ProdutoDAO;
-import Desafio1.db.DB;
-import Desafio1.entities.Produto;
-import Desafio1.entities.Carrinho;
-
-public class Programa {
-
+public class Programa 
+{
     public static void main(String[] args) 
     {
+        Connection conn = null;
+        Scanner scanner = new Scanner(System.in);
 
-      ProdutoDAO produtoDao = FabricaDao.criarProdutoDao();
-      CarrinhoDAO carrinhoDao = FabricaDao.createCarrinhoDao();
+        try 
+        {
+            conn = DB.getConexao();
+            ProdutoJDBC produtoDao = new ProdutoJDBC(conn);
+            CarrinhoJDBC carrinhoDao = new CarrinhoJDBC(conn);
 
+            System.out.println("---------------------------------------------------------------------------------------");
+            System.out.println("---------                       Bem-vindo à Loja                              ---------");
+            System.out.println("Modo:");
+            System.out.println("1 - Cliente");
+            System.out.println("2 - Vendedor");
+            
+            String tipoUsuario = scanner.nextLine().trim().toLowerCase();
 
-        Scanner sc = new Scanner(System.in);
-        int opcao;
+            System.out.println("---------------------------------------------------------------------------------------");
 
-        // Menu de entrada
-        System.out.println("Escolha o tipo de usuário: ");
-        System.out.println("1 - Cliente");
-        System.out.println("2 - Administrador");
-        opcao = sc.nextInt();
+            if (tipoUsuario.equals("1")) 
+            {
+                System.out.println("Insira o nome do cliente:");
+                String nomeCliente = scanner.nextLine();
+                Carrinho meuCarrinho = new Carrinho(nomeCliente);
+                
+                
+                int opcao;
+                do 
+                {
+                    System.out.println("\n---------------------------------------------------------------------------------------");
 
-        if (opcao == 1) {
-            // Acesso para cliente
-            menuCliente();
-        } else if (opcao == 2) {
-            // Acesso para administrador
-            menuAdministrador();
-        } else {
-            System.out.println("Opção inválida.");
-        }
+                    System.out.println("\n----------                        Menu Cliente                               ----------");
+                    System.out.println("1. Listar produtos do estoque");
+                    System.out.println("2. Adicionar produto ao carrinho");
+                    System.out.println("3. Listar produtos do carrinho");
+                    System.out.println("4. Atualizar quantidade de produto no carrinho");
+                    System.out.println("5. Remover produto do carrinho");
+                    System.out.println("6. Finalizar compra");
+                    System.out.println("0. Sair");
+                    System.out.print("Escolha uma opção: ");
+                    opcao = scanner.nextInt();
+                    scanner.nextLine();
 
-        sc.close();
-    }
+                    switch (opcao) 
+                    {
+                        case 1:
+                        {
+                            System.out.println("Produtos disponíveis no estoque:");
+                            produtoDao.listarProdutos().forEach(produto -> 
+                            {
+                                System.out.printf("ID: %d | Nome: %s | Descrição: %s | Categoria: %s | Valor: R$%.2f | Estoque: %d%n",
+                                    produto.getID(), produto.getProduto(), produto.getDescricao(), produto.getCategoria(),
+                                    produto.getValor(), produto.getQuant());
+                            });
+                            break;
+                        }
+                        case 2:
+                        {
+                            System.out.print("Digite o ID do produto que deseja adicionar ao carrinho: ");
+                            int idProduto = scanner.nextInt();
+                            System.out.print("Quantidade desejada: ");
+                            int quant = scanner.nextInt();
+                            scanner.nextLine();
 
-    // Menu de ações para o cliente
-    private static void menuCliente() {
-        Scanner sc = new Scanner(System.in);
-        int opcaoCliente;
+                            try 
+                            {
+                                Produto produto = produtoDao.buscarProdutoPorID(idProduto);
+                                meuCarrinho.inserirProduto(produto, quant);
+                                System.out.println("Produto adicionado ao carrinho com sucesso!");
+                            } 
+                            catch (ProdutoException | CarrinhoException e) 
+                            {
+                                System.out.println("Erro: " + e.getMessage());
+                            }
+                            break;
+                        }
+                        case 3:
+                        {
+                            System.out.println("Produtos no carrinho:");
+                            System.out.println(meuCarrinho.listarProdutos());
+                            break;
+                        }
+                        case 4:
+                        {
+                            System.out.print("Digite o ID do produto que deseja atualizar no carrinho: ");
+                            int idProduto = scanner.nextInt();
+                            System.out.print("Nova quantidade: ");
+                            int novaQuant = scanner.nextInt();
+                            scanner.nextLine();
+                            try 
+                            {
+                                Produto produto = produtoDao.buscarProdutoPorID(idProduto);
+                                double novoSubtotal = produto.getValor() * novaQuant;
+                                carrinhoDao.atualizarProduto(meuCarrinho.getID(), produto, novaQuant, novoSubtotal);
+                                System.out.println("Produto atualizado no carrinho com sucesso!");
+                            } 
+                            catch (ProdutoException | CarrinhoException e) 
+                            {
+                                System.out.println("Erro: " + e.getMessage());
+                            }
+                            break;
+                        }
+                        case 5:
+                        {
+                            System.out.print("Digite o ID do produto que deseja remover do carrinho: ");
+                            int idProduto = scanner.nextInt();
+                            scanner.nextLine();
 
-        System.out.println("Menu Cliente:");
-        System.out.println("1 - Nova Compra");
-        System.out.println("2 - Atualizar Carrinho");
-        System.out.println("3 - Deletar Carrinho");
-        System.out.println("Escolha uma opção:");
-        opcaoCliente = sc.nextInt();
+                            try 
+                            {
+                                carrinhoDao.removerProduto(meuCarrinho.getID(), idProduto);
+                                System.out.println("Produto removido do carrinho com sucesso!");
+                            } 
+                            catch (CarrinhoException e) 
+                            {
+                                System.out.println("Erro: " + e.getMessage());
+                            }
+                            break;
+                        }
+                        case 6:
+                        {
+                            System.out.println("Finalizando compra...");
+                            meuCarrinho.encerrarCompra(produtoDao);
+                            System.out.printf("Compra finalizada com sucesso! Valor total: R$%.2f%n", meuCarrinho.getValorTotal());
+                            break;
+                        }
+                        case 0:
+                        {
+                            System.out.println("Saindo do sistema...");
+                            System.out.println("---------------------------------------------------------------------------------------");
 
-        switch (opcaoCliente) {
-            case 1:
-                criarCarrinho(); // Criar carrinho
-                break;
+                            break;
+                        }
+                        default:
+                        {
+                            System.out.println("Opção inválida. Tente novamente.");
+                        }
+                    }
+                } while (opcao != 0);
+            } 
+            else if (tipoUsuario.equals("2")) 
+            {
+                int opcao;
+                do 
+                {
+                    System.out.println("\n---------------------------------------------------------------------------------------");
 
-            case 2:
-                atualizarCarrinho(); // Atualizar carrinho
-                break;
+                    System.out.println("\n----------                        Menu Vendedor                              ----------");
+                    System.out.println("1. Adicionar produto ao estoque");
+                    System.out.println("2. Listar produtos do estoque");
+                    System.out.println("3. Atualizar produto no estoque");
+                    System.out.println("4. Remover produto do estoque");
+                    System.out.println("0. Sair");
+                    System.out.print("Escolha uma opção: ");
+                    opcao = scanner.nextInt();
+                    scanner.nextLine();
+                    
+                    switch (opcao) 
+                    {
+                        case 1:
+                        {
+                            System.out.print("Nome do produto: ");
+                            String nomeProduto = scanner.nextLine();
+                            System.out.print("Descrição do produto: ");
+                            String descricao = scanner.nextLine();
+                            System.out.print("Categoria do produto: ");
+                            String categoria = scanner.nextLine();
+                            System.out.print("Valor do produto: ");
+                            double valor = scanner.nextDouble();
+                            System.out.print("Quantidade em estoque: ");
+                            int quant = scanner.nextInt();
+                            scanner.nextLine();
 
-            case 3:
-                deletarCarrinho(); // Deletar carrinho
-                break;
+                            Produto novoProduto = new Produto(nomeProduto, descricao, categoria, valor, quant);
+                            produtoDao.inserirProduto(novoProduto);
+                            System.out.println("Produto adicionado ao estoque com sucesso!");
+                            break;
+                        }
+                        case 2:
+                        {
+                            System.out.println("Produtos disponíveis no estoque:");
+                            produtoDao.listarProdutos().forEach(produto -> 
+                            {
+                                System.out.printf("ID: %d | Nome: %s | Descrição: %s | Categoria: %s | Valor: R$%.2f | Estoque: %d%n",
+                                    produto.getID(), produto.getProduto(), produto.getDescricao(), produto.getCategoria(),
+                                    produto.getValor(), produto.getQuant());
+                            });
+                            break;
+                        }
+                        case 3:
+                        {
+                            System.out.print("Digite o ID do produto que deseja atualizar no estoque: ");
+                            int idProduto = scanner.nextInt();
+                            scanner.nextLine();
+                            System.out.print("Nome do produto: ");
+                            String nomeProduto = scanner.nextLine();
+                            System.out.print("Descrição do produto: ");
+                            String descricao = scanner.nextLine();
+                            System.out.print("Categoria do produto: ");
+                            String categoria = scanner.nextLine();
+                            System.out.print("Valor do produto: ");
+                            double valor = scanner.nextDouble();
+                            System.out.print("Quantidade em estoque: ");
+                            int quant = scanner.nextInt();
+                            scanner.nextLine();
 
-            default:
-                System.out.println("Opção inválida.");
-        }
-    }
-
-    // Menu de ações para o administrador
-    private static void menuAdministrador() {
-        Scanner sc = new Scanner(System.in);
-        int opcaoAdm;
-
-        System.out.println("Menu Administrador:");
-        System.out.println("1 - Criar Produto");
-        System.out.println("2 - Atualizar Produto");
-        System.out.println("3 - Deletar Produto");
-        System.out.println("4 - Listar Produtos");
-        System.out.println("Escolha uma opção:");
-        opcaoAdm = sc.nextInt();
-
-        switch (opcaoAdm) {
-            case 1:
-                criarProduto(); // Criar produto
-                break;
-
-            case 2:
-                atualizarProduto(); // Atualizar produto
-                break;
-
-            case 3:
-                deletarProduto(); // Deletar produto
-                break;
-
-            case 4:
-                listarProdutos(); // Listar produtos
-                break;
-
-            default:
-                System.out.println("Opção inválida.");
-        }
-    }
-
-    // CRUD para Carrinho
-
-    // Criar carrinho
-    private static void criarCarrinho() {
-        Scanner sc = new Scanner(System.in);
-        System.out.println("Digite o nome do cliente:");
-        String nomeCliente = sc.nextLine();
-
-        Carrinho carrinho = new Carrinho(nomeCliente); // Criando novo carrinho
-        System.out.println("Carrinho criado com sucesso para o cliente: " + nomeCliente);
-    }
-
-    // Atualizar carrinho
-    private static void atualizarCarrinho() {
-        Scanner sc = new Scanner(System.in);
-        System.out.println("Digite o ID do carrinho para atualizar:");
-        int idCarrinho = sc.nextInt();
-        // Lógica para encontrar carrinho pelo ID
-        // Aqui você pode adicionar ou remover produtos conforme necessário
-        // Exemplo fictício:
-        Carrinho carrinho = buscarCarrinhoPorId(idCarrinho);
-        if (carrinho != null) {
-            System.out.println("Carrinho encontrado. Atualizando...");
-            // Faça as operações de atualização de produtos no carrinho
-        } else {
-            System.out.println("Carrinho não encontrado.");
-        }
-    }
-
-    // Deletar carrinho
-    private static void deletarCarrinho() {
-        Scanner sc = new Scanner(System.in);
-        System.out.println("Digite o ID do carrinho para deletar:");
-        int idCarrinho = sc.nextInt();
-        // Lógica para deletar o carrinho pelo ID
-        // Exemplo fictício:
-        Carrinho carrinho = buscarCarrinhoPorId(idCarrinho);
-        if (carrinho != null) {
-            System.out.println("Carrinho deletado com sucesso!");
-            // Remover carrinho da lista
-        } else {
-            System.out.println("Carrinho não encontrado.");
-        }
-    }
-
-    // CRUD para Produto
-
-    // Criar produto
-    private static void criarProduto() {
-        Scanner sc = new Scanner(System.in);
-        System.out.println("Digite o nome do produto:");
-        String nome = sc.nextLine();
-        System.out.println("Digite a descrição do produto:");
-        String descricao = sc.nextLine();
-        System.out.println("Digite a categoria do produto:");
-        String categoria = sc.nextLine();
-        System.out.println("Digite o preço do produto:");
-        double preco = sc.nextDouble();
-        System.out.println("Digite a quantidade do produto:");
-        int quantidade = sc.nextInt();
-
-        Produto produto = new Produto(nome, descricao, categoria, preco, quantidade); // Criando produto
-        System.out.println("Produto criado com sucesso: " + produto);
-    }
-
-    // Atualizar produto
-    private static void atualizarProduto() {
-        Scanner sc = new Scanner(System.in);
-        System.out.println("Digite o ID do produto para atualizar:");
-        int idProduto = sc.nextInt();
-        // Lógica para buscar o produto pelo ID e atualizar os detalhes
-        // Exemplo fictício:
-        Produto produto = buscarProdutoPorId(idProduto);
-        if (produto != null) {
-            System.out.println("Produto encontrado. Atualizando...");
-            System.out.println("Digite a nova quantidade:");
-            int novaQuantidade = sc.nextInt();
-            produto.setQuantidade(novaQuantidade); // Atualiza a quantidade
-            System.out.println("Produto atualizado com sucesso!");
-        } else {
-            System.out.println("Produto não encontrado.");
-        }
-    }
-
-    // Deletar produto
-    private static void deletarProduto() {
-        Scanner sc = new Scanner(System.in);
-        System.out.println("Digite o ID do produto para deletar:");
-        int idProduto = sc.nextInt();
-        // Lógica para deletar o produto pelo ID
-        Produto produto = buscarProdutoPorId(idProduto);
-        if (produto != null) {
-            System.out.println("Produto deletado com sucesso!");
-            // Remover produto da lista
-        } else {
-            System.out.println("Produto não encontrado.");
-        }
-    }
-
-    // Listar produtos
-    private static void listarProdutos() {
-        // Aqui você pode implementar a listagem de todos os produtos cadastrados
-        // Exemplo fictício:
-        System.out.println("Lista de produtos:");
-        // Lógica de listagem dos produtos (você pode iterar sobre a lista de produtos)
-    }
-
-    // Métodos fictícios para buscar produtos e carrinhos por ID
-
-    private static Produto buscarProdutoPorId(int id) {
-        // Lógica para buscar produto no banco de dados ou lista
-        return new Produto("Produto Exemplo", "Descrição Exemplo", "Categoria", 10.0, 5); // Exemplo
-    }
-
-    private static Carrinho buscarCarrinhoPorId(int id) {
-        // Lógica para buscar carrinho no banco de dados ou lista
-        return new Carrinho("Cliente Exemplo"); // Exemplo
-    }
-
-    // Classe Produto
-    static class Produto {
-        private String nome;
-        private String descricao;
-        private String categoria;
-        private double preco;
-        private int quantidade;
-
-        public Produto(String nome, String descricao, String categoria, double preco, int quantidade) {
-            this.nome = nome;
-            this.descricao = descricao;
-            this.categoria = categoria;
-            this.preco = preco;
-            this.quantidade = quantidade;
-        }
-
-        public void setQuantidade(int quantidade) {
-            this.quantidade = quantidade;
-        }
-
-        @Override
-        public String toString() {
-            return "Produto{nome='" + nome + "', descricao='" + descricao + "', categoria='" + categoria + "', preco=" + preco + ", quantidade=" + quantidade + "}";
-        }
-    }
-
-    // Classe Carrinho
-    static class Carrinho {
-        private String cliente;
-        private List<Produto> produtos;
-
-        public Carrinho(String cliente) {
-            this.cliente = cliente;
-            this.produtos = new ArrayList<>();
-        }
-
-        public void adicionarProduto(Produto produto) {
-            this.produtos.add(produto);
-        }
-
-        @Override
-        public String toString() {
-            return "Carrinho{cliente='" + cliente + "', produtos=" + produtos + "}";
+                            Produto produtoAtualizado = new Produto(idProduto, nomeProduto, descricao, categoria, valor, quant);
+                            produtoDao.atualizarProduto(produtoAtualizado);
+                            System.out.println("Produto atualizado no estoque com sucesso!");
+                            break;
+                        }
+                        case 4:
+                        {
+                            System.out.print("Digite o ID do produto que deseja remover do estoque: ");
+                            int idProduto = scanner.nextInt();
+                            scanner.nextLine();
+                            produtoDao.removerProduto(idProduto);
+                            System.out.println("Produto removido do estoque com sucesso!");
+                            break;
+                        }
+                        case 0:
+                        {
+                            System.out.println("Saindo do sistema...");
+                            System.out.println("\n---------------------------------------------------------------------------------------");
+                            break;
+                        }
+                        default:
+                        {
+                            System.out.println("Opção inválida. Tente novamente.");
+                        }
+                    }
+                } while (opcao != 0);
+            } 
+            else 
+            {
+                System.out.println("Tipo de usuário inválido. Encerrando o sistema.");
+            }
+        } 
+        catch (Exception e) 
+        {
+            System.out.println("Erro ao conectar com o banco de dados ou executar operações: " + e.getMessage());
+        } 
+        finally 
+        {
+            if (conn != null) 
+            {
+                DB.fecharConexao();
+            }
+            scanner.close();
         }
     }
 }
